@@ -30,8 +30,12 @@ public class StudentPlayer extends SaboteurPlayer {
      */
     public Move chooseMove(SaboteurBoardState boardState) {
         System.out.println("turn " + boardState.getTurnNumber());
+        if (boardState.getTurnNumber() <= 2)
+        {
+            MyTools.clearTerminalNode();
+        }
         MyTools.addOpponentMoveToTerminalNodes(boardState.getHiddenBoard());
-        MyTools.printTerminal();
+//        MyTools.printTerminal();
         ArrayList<SaboteurMove> legalMoves = boardState.getAllLegalMoves();
         if (MyTools.PREVIOUS_HAND.isEmpty())
         {
@@ -46,17 +50,18 @@ public class StudentPlayer extends SaboteurPlayer {
         }
         SaboteurMove myMove = null;
         ArrayList<SaboteurCard> hand = boardState.getCurrentPlayerCards();
-        myMove = MyTools.checkMalus(legalMoves, hand, boardState);
+        myMove = MyTools.checkMalus(legalMoves, hand);
+        if (MyTools.MAX_HEIGHT > 10) myMove = MyTools.moveLeftRight(legalMoves);
         if (myMove == null) myMove = MyTools.moveDown(legalMoves, true);
         if (myMove == null) myMove = MyTools.moveDown(legalMoves, false);
         if (myMove == null) myMove = MyTools.aimDown(legalMoves);
-        if (myMove == null) myMove = MyTools.checkDestroy(legalMoves, boardState);
         if (myMove == null) myMove = MyTools.checkDrop(legalMoves, hand);
+        if (myMove == null) myMove = MyTools.checkDestroy(legalMoves, boardState);
         if (myMove == null) myMove = boardState.getRandomMove();
         MyTools.addOwnMoveToTerminalNodes((SaboteurMove) myMove, MyTools.TerminalNodes);
         MyTools.printTerminal();
         // Return your move to be processed by the server
-        System.out.println("Played move: " + myMove.getCardPlayed().getName() + " x position: " + myMove.getPosPlayed()[1] + " y position " + myMove.getPosPlayed()[0]);
+//        System.out.println("Played move: " + myMove.getCardPlayed().getName() + " x position: " + myMove.getPosPlayed()[1] + " y position " + myMove.getPosPlayed()[0]);
         return myMove;
     }
 }
