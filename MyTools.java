@@ -1,6 +1,5 @@
 package student_player;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -25,11 +24,14 @@ public class MyTools {
     public static int GLOBAL_X = 5;
     public static int GLOBAL_Y = 5;
     public static Integer[] GLOBAL_DIRECTION = {1, 1, 1, 1};
+    public static int MAX_HEIGHT = 5;
 
     public static int BOTTOM = 0;
     public static int LEFT = 1;
     public static int RIGHT = 2;
     public static int TOP = 3;
+
+    public static boolean TERMINATE = false;
 
     public static ArrayList<SaboteurCard> PREVIOUS_HAND = new ArrayList<>();
     public static ArrayList<SaboteurCard> TopDown = new ArrayList<>();
@@ -65,9 +67,16 @@ public class MyTools {
 
     public static void addNodeToTerminal(Integer[] array, int index)
     {
-        if (TerminalNodes.contains(array))
+        if (array[1] > MAX_HEIGHT)
         {
-            return;
+            MAX_HEIGHT = array[1];
+        }
+        for (int i = 0; i < TerminalNodes.size(); i ++)
+        {
+            if (TerminalNodes.get(i)[0] == array[0] && TerminalNodes.get(i)[1] == array[1])
+            {
+                return;
+            }
         }
         if (TerminalNodes.get(0)[1] < array[1])
         {
@@ -78,8 +87,11 @@ public class MyTools {
         {
             if (TerminalNodes.get(i)[1] > array[1])
             {
-                index = i + 1;
-                break;
+                if (index != TerminalNodes.size() - 1)
+                {
+                    index = i + 1;
+                    break;
+                }
             }
         }
         if (index == 0)
@@ -92,6 +104,7 @@ public class MyTools {
             {
                 TerminalNodes.add(1, array);
             }
+            return;
         }
         else if (index == TerminalNodes.size())
         {
@@ -103,6 +116,7 @@ public class MyTools {
             {
                 TerminalNodes.addLast(array);
             }
+            return;
         }
         else
         {
@@ -114,7 +128,16 @@ public class MyTools {
             {
                 TerminalNodes.add(index + 1, array);
             }
+            return;
         }
+    }
+
+    public static void clearTerminalNode()
+    {
+        if (TerminalNodes.size() < 1) return;
+        TerminalNodes.clear();
+        TerminalNodes.add(new Integer[]{5, 5, 1, 1, 1, 1});
+        PREVIOUS_HAND.clear();
     }
 
     public static void printTerminal()
@@ -136,7 +159,7 @@ public class MyTools {
         {
             return;
         }
-        System.out.println("Name of the current card is " + currentCard.getName());
+//        System.out.println("Name of the current card is " + currentCard.getName());
         String cardName = currentCard.getName();
         switch (cardName)
         {
@@ -156,32 +179,21 @@ public class MyTools {
                 LeftRight.add(currentCard);
                 break;
             case "Tile:13":
-                TopDown.add(currentCard);
-                LeftRight.add(currentCard);
-                PathCut.add(currentCard);
-                break;
-            case "Tile:1":
-            case "Tile:2":
-            case "Tile:2_flip":
-                TopDown.add(currentCard);
-                PathCut.add(currentCard);
-                break;
             case "Tile:3":
             case "Tile:3_flip":
             case "Tile:11":
             case "Tile:11_flip":
             case "Tile:14":
             case "Tile:14_flip":
-                TopLeftRight.add(currentCard);
+            case "Tile:1":
+            case "Tile:2":
+            case "Tile:2_flip":
+            case "Tile:15":
                 PathCut.add(currentCard);
                 break;
             case "Tile:4":
             case "Tile:4_flip":
-                LeftRight.add(currentCard);
-                DeadEnd.add(currentCard);
-                break;
             case "Tile:12":
-                TopDown.add(currentCard);
                 DeadEnd.add(currentCard);
                 break;
             case "Tile:5":
@@ -191,12 +203,11 @@ public class MyTools {
             case "Tile:9":
             case "Tile:9_flip":
                 TopLeftRight.add(currentCard);
+                LeftRight.add(currentCard);
                 break;
             case "Tile:10":
                 LeftRight.add(currentCard);
-            case "Tile:15":
-                LeftRight.add(currentCard);
-                PathCut.add(currentCard);
+                break;
         }
     }
 
@@ -248,41 +259,87 @@ public class MyTools {
 
         if (board[coordinate_y][coordinate_x] == null)
         {
-            GLOBAL_X = coordinate_x;
-            GLOBAL_Y = coordinate_y;
-            GLOBAL_DIRECTION = new Integer[]{0, 0, 0, 0};
-            return true;
+            if (getTerminalNodeWithXY(coordinate_x, coordinate_y) > 0)
+            {
+                TerminalNodes.remove(getTerminalNodeWithXY(coordinate_x, coordinate_y));
+            }
+            iterateDestroyed(coordinate_x, coordinate_y);
+            TERMINATE = true;
+            return false;
         }
 
-        if (coordinate_and_search[2 + BOTTOM] == 1 && board[coordinate_y + 1][coordinate_x] != null)
+        if (coordinate_y < 12)
         {
-            GLOBAL_X = coordinate_x;
-            GLOBAL_Y = coordinate_y + 1;
-            GLOBAL_DIRECTION = getCardDirection(board[coordinate_y + 1][coordinate_x].getName(), BOTTOM);
-            return true;
+            if (coordinate_and_search[2 + BOTTOM] == 1 && board[coordinate_y + 1][coordinate_x] != null)
+            {
+                GLOBAL_X = coordinate_x;
+                GLOBAL_Y = coordinate_y + 1;
+                GLOBAL_DIRECTION = getCardDirection(board[coordinate_y + 1][coordinate_x].getName(), BOTTOM);
+                return true;
+            }
         }
-        if (coordinate_and_search[2 + LEFT] == 1 && board[coordinate_y][coordinate_x - 1] != null)
+        if (coordinate_x > 1)
         {
-            GLOBAL_X = coordinate_x - 1;
-            GLOBAL_Y = coordinate_y;
-            GLOBAL_DIRECTION = getCardDirection(board[coordinate_y][coordinate_x - 1].getName(), LEFT);
-            return true;
+            if (coordinate_and_search[2 + LEFT] == 1 && board[coordinate_y][coordinate_x - 1] != null)
+            {
+                GLOBAL_X = coordinate_x - 1;
+                GLOBAL_Y = coordinate_y;
+                GLOBAL_DIRECTION = getCardDirection(board[coordinate_y][coordinate_x - 1].getName(), LEFT);
+                return true;
+            }
         }
-        if (coordinate_and_search[2 + RIGHT] == 1 && board[coordinate_y][coordinate_x + 1] != null)
+        if (coordinate_x < 12)
         {
-            GLOBAL_X = coordinate_x + 1;
-            GLOBAL_Y = coordinate_y;
-            GLOBAL_DIRECTION = getCardDirection(board[coordinate_y][coordinate_x + 1].getName(), RIGHT);
-            return true;
+            if (coordinate_and_search[2 + RIGHT] == 1 && board[coordinate_y][coordinate_x + 1] != null)
+            {
+                GLOBAL_X = coordinate_x + 1;
+                GLOBAL_Y = coordinate_y;
+                GLOBAL_DIRECTION = getCardDirection(board[coordinate_y][coordinate_x + 1].getName(), RIGHT);
+                return true;
+            }
         }
-        if (coordinate_and_search[2 + TOP] == 1 && board[coordinate_y - 1][coordinate_x] != null)
+        if (coordinate_y > 1)
         {
-            GLOBAL_X = coordinate_x;
-            GLOBAL_Y = coordinate_y - 1;
-            GLOBAL_DIRECTION = getCardDirection(board[coordinate_y - 1][coordinate_x].getName(), TOP);
-            return true;
+            if (coordinate_and_search[2 + TOP] == 1 && board[coordinate_y - 1][coordinate_x] != null)
+            {
+                GLOBAL_X = coordinate_x;
+                GLOBAL_Y = coordinate_y - 1;
+                GLOBAL_DIRECTION = getCardDirection(board[coordinate_y - 1][coordinate_x].getName(), TOP);
+                return true;
+            }
         }
         return false;
+    }
+
+    private static void iterateDestroyed(int x, int y)
+    {
+        for (int i = 0; i < TerminalNodes.size(); i ++)
+        {
+            if (TerminalNodes.get(i)[0] == x && TerminalNodes.get(i)[1] == y + 1)
+            {
+                Integer[] myArray = TerminalNodes.get(i);
+                myArray[2 + TOP] = 1;
+                TerminalNodes.set(i, myArray);
+            }
+            if (TerminalNodes.get(i)[0] == x && TerminalNodes.get(i)[1] == y - 1)
+            {
+                Integer[] myArray = TerminalNodes.get(i);
+                myArray[2 + BOTTOM] = 1;
+                TerminalNodes.set(i, myArray);
+            }
+            if (TerminalNodes.get(i)[0] == x + 1 && TerminalNodes.get(i)[1] == y)
+            {
+                Integer[] myArray = TerminalNodes.get(i);
+                myArray[2 + LEFT] = 1;
+                TerminalNodes.set(i, myArray);
+            }
+            if (TerminalNodes.get(i)[0] == x - 1 && TerminalNodes.get(i)[1] == y)
+            {
+                Integer[] myArray = TerminalNodes.get(i);
+                myArray[2 + RIGHT] = 1;
+                TerminalNodes.set(i, myArray);
+            }
+        }
     }
 
     private static void updateNode(int node_position, int new_x, int new_y)
@@ -324,6 +381,10 @@ public class MyTools {
         {
             if (searchAround(board, TerminalNodes.get(i)))
             {
+                if (TERMINATE) {
+                    TERMINATE = false;
+                    return;
+                }
                 updateNode(i, GLOBAL_X, GLOBAL_Y);
                 Integer[] result = new Integer[]{GLOBAL_X, GLOBAL_Y, GLOBAL_DIRECTION[0], GLOBAL_DIRECTION[1], GLOBAL_DIRECTION[2], GLOBAL_DIRECTION[3]};
                 System.out.println("Saving Opponent x: " + Integer.toString(result[0]) + ", y: " + Integer.toString(result[1]));
@@ -334,10 +395,28 @@ public class MyTools {
         System.out.println("No opponent move added");
     }
 
+    private static int getTerminalNodeWithXY(int x, int y)
+    {
+        for (int i = 0; i < TerminalNodes.size(); i ++)
+        {
+            if (TerminalNodes.get(i)[0] == x && TerminalNodes.get(i)[0] == y) return i;
+        }
+        return -1;
+    }
+
     public static void addOwnMoveToTerminalNodes(SaboteurMove move, LinkedList<Integer[]> node)
     {
         if (move.getCardPlayed().getName().equals("Drop")) {
             System.out.println("No own move added");
+            return;
+        }
+        if (move.getCardPlayed().getName().equals("Destroy"))
+        {
+            if (getTerminalNodeWithXY(move.getPosPlayed()[1], move.getPosPlayed()[0]) > 0)
+            {
+                TerminalNodes.remove();
+            }
+            iterateDestroyed(move.getPosPlayed()[1], move.getPosPlayed()[0]);
             return;
         }
         int pos_x = move.getPosPlayed()[1];
@@ -351,55 +430,49 @@ public class MyTools {
             if (Math.abs(node.get(i)[0] - pos_x) == 1 && node.get(i)[1] == pos_y)
             {
 //                System.out.println("played someting on the x axis");
-                if (node.get(i)[0] > pos_x)
+                if (pos_x < 12)
                 {
-                    GLOBAL_X = pos_x;
-                    GLOBAL_Y = pos_y;
-                    GLOBAL_DIRECTION = getCardDirection(move.getCardPlayed().getName(), LEFT);
-                }
-                else
-                {
-                    if (node.get(i)[4] == 1)
+                    if (node.get(i)[0] > pos_x)
                     {
-                        System.out.println("position availiable");
+                        GLOBAL_X = pos_x;
+                        GLOBAL_Y = pos_y;
+                        GLOBAL_DIRECTION = getCardDirection(move.getCardPlayed().getName(), LEFT);
                     }
+
+                }
+                else if (pos_x > 1)
+                {
                     GLOBAL_X = pos_x;
                     GLOBAL_Y = pos_y;
                     GLOBAL_DIRECTION = getCardDirection(move.getCardPlayed().getName(), RIGHT);
                 }
-                updateNode(i, GLOBAL_X, GLOBAL_Y);
-                Integer[] result = new Integer[]{GLOBAL_X, GLOBAL_Y, GLOBAL_DIRECTION[0], GLOBAL_DIRECTION[1], GLOBAL_DIRECTION[2], GLOBAL_DIRECTION[3]};
-                addNodeToTerminal(result, i);
-                System.out.println("Saving Own x: " + Integer.toString(result[0]) + ", y: " + Integer.toString(result[1]));
-                return;
             }
             if (Math.abs(node.get(i)[1] - pos_y) == 1 && node.get(i)[0] == pos_x)
             {
 //                System.out.println("played someting on the y axis");
-                if (node.get(i)[1] > pos_y)
+                if (pos_y > 1)
                 {
-                    GLOBAL_X = pos_x;
-                    GLOBAL_Y = pos_y;
-                    GLOBAL_DIRECTION = getCardDirection(move.getCardPlayed().getName(), TOP);
-                }
-                else
-                {
-                    if (node.get(i)[2] == 1)
+                    if (node.get(i)[1] > pos_y)
                     {
-                        System.out.println("position availiable");
+                        GLOBAL_X = pos_x;
+                        GLOBAL_Y = pos_y;
+                        GLOBAL_DIRECTION = getCardDirection(move.getCardPlayed().getName(), TOP);
                     }
+                }
+                else if (pos_y < 12)
+                {
                     GLOBAL_X = pos_x;
                     GLOBAL_Y = pos_y;
                     GLOBAL_DIRECTION = getCardDirection(move.getCardPlayed().getName(), BOTTOM);
                 }
-                updateNode(i, GLOBAL_X, GLOBAL_Y);
-                Integer[] result = new Integer[]{GLOBAL_X, GLOBAL_Y, GLOBAL_DIRECTION[0], GLOBAL_DIRECTION[1], GLOBAL_DIRECTION[2], GLOBAL_DIRECTION[3]};
-                addNodeToTerminal(result, i);
-                System.out.println("Saving Own x: " + Integer.toString(result[0]) + ", y: " + Integer.toString(result[1]));
-                return;
             }
+            updateNode(i, GLOBAL_X, GLOBAL_Y);
+            Integer[] result = new Integer[]{GLOBAL_X, GLOBAL_Y, GLOBAL_DIRECTION[0], GLOBAL_DIRECTION[1], GLOBAL_DIRECTION[2], GLOBAL_DIRECTION[3]};
+            addNodeToTerminal(result, i);
+            System.out.println("Saving Own x: " + Integer.toString(result[0]) + ", y: " + Integer.toString(result[1]));
+            return;
         }
-        System.out.println("No own move added");
+//        System.out.println("No own move added");
     }
 
     public static void printArrayList(ArrayList<SaboteurCard> cardList)
@@ -437,12 +510,14 @@ public class MyTools {
     public static SaboteurMove moveDown(ArrayList<SaboteurMove> legalMove, boolean best)
     {
         int currentHeight = TerminalNodes.getFirst()[1];
-        MyTools.printArrayList(PathCut);
-        MyTools.printArrayList(DeadEnd);
+//        MyTools.printArrayList(PathCut);
+//        MyTools.printArrayList(DeadEnd);
         for (SaboteurMove move: legalMove)
         {
 //            System.out.println("checking move: " + move.getCardPlayed().getName());
-            if (arrayHasCard(Special, move.getCardPlayed().getName()))
+            if (arrayHasCard(Special, move.getCardPlayed().getName())
+                    || arrayHasCard(DeadEnd, move.getCardPlayed().getName())
+                    || arrayHasCard(PathCut, move.getCardPlayed().getName()))
             {
                 continue;
             }
@@ -450,9 +525,7 @@ public class MyTools {
             {
                 if (move.getPosPlayed()[0] > currentHeight && arrayHasCard(TopDown, move.getCardPlayed().getName()))
                 {
-                    if (arrayHasCard(DeadEnd, move.getCardPlayed().getName())) continue;
-                    if (arrayHasCard(PathCut, move.getCardPlayed().getName())) continue;
-                    System.out.println("Selecting move: " + move.getCardPlayed().getName() + " x position: " + move.getPosPlayed()[1] + " y position " + move.getPosPlayed()[0]);
+//                    System.out.println("Selecting move: " + move.getCardPlayed().getName() + " x position: " + move.getPosPlayed()[1] + " y position " + move.getPosPlayed()[0]);
                     if (arrayHasCard(TopDown, move.getCardPlayed().getName())) TopDown.remove(move.getCardPlayed());
                     if (arrayHasCard(TopLeftRight, move.getCardPlayed().getName())) TopLeftRight.remove(move.getCardPlayed());
                     if (arrayHasCard(LeftRight, move.getCardPlayed().getName())) LeftRight.remove(move.getCardPlayed());
@@ -467,7 +540,7 @@ public class MyTools {
                 {
                     if (arrayHasCard(DeadEnd, move.getCardPlayed().getName())) continue;
                     if (arrayHasCard(PathCut, move.getCardPlayed().getName())) continue;
-                    System.out.println("Selecting move: " + move.getCardPlayed().getName() + " x position: " + move.getPosPlayed()[1] + " y position " + move.getPosPlayed()[0]);
+//                    System.out.println("Selecting move: " + move.getCardPlayed().getName() + " x position: " + move.getPosPlayed()[1] + " y position " + move.getPosPlayed()[0]);
                     if (arrayHasCard(TopDown, move.getCardPlayed().getName())) TopDown.remove(move.getCardPlayed());
                     if (arrayHasCard(TopLeftRight, move.getCardPlayed().getName())) TopLeftRight.remove(move.getCardPlayed());
                     if (arrayHasCard(LeftRight, move.getCardPlayed().getName())) LeftRight.remove(move.getCardPlayed());
@@ -483,7 +556,7 @@ public class MyTools {
     public static SaboteurMove checkDrop(ArrayList<SaboteurMove> legalMove, ArrayList<SaboteurCard> hand)
     {
         for(SaboteurMove move : legalMove) {
-            if(move.getCardPlayed().getName().equals("Drop") || move.getCardPlayed().getName().equals("Map")) {
+            if(move.getCardPlayed().getName().equals("Drop")) {
                 String dropped = hand.get(move.getPosPlayed()[0]).getName();
                 if(arrayHasCard(PathCut, dropped) || arrayHasCard(DeadEnd, dropped)) {
                     return move;
@@ -514,7 +587,7 @@ public class MyTools {
                 {
                     TopLeftRight.remove(move.getCardPlayed());
                     PREVIOUS_HAND.remove(move.getCardPlayed());
-                    System.out.println("Second best move: " + move.getCardPlayed().getName() + " x position: " + move.getPosPlayed()[1] + " y position " + move.getPosPlayed()[0]);
+//                    System.out.println("Second best move: " + move.getCardPlayed().getName() + " x position: " + move.getPosPlayed()[1] + " y position " + move.getPosPlayed()[0]);
                     return move;
                 }
             }
@@ -522,13 +595,31 @@ public class MyTools {
         return null;
     }
 
-    public static SaboteurMove checkMalus(ArrayList<SaboteurMove> legalMove, ArrayList<SaboteurCard> hand, SaboteurBoardState bs)
+    public static SaboteurMove moveLeftRight(ArrayList<SaboteurMove> legalMove)
+    {
+        for(int i = 0; i < TerminalNodes.size(); i ++)
+        {
+            if (TerminalNodes.get(i)[1] > 10)
+            {
+                for (SaboteurMove move: legalMove)
+                {
+                    if (arrayHasCard(LeftRight, move.getCardPlayed().getName()) && move.getPosPlayed()[0] == 12)
+                        return move;
+
+                    if (arrayHasCard(LeftRight, move.getCardPlayed().getName())
+                            && (arrayHasCard(TopDown, move.getCardPlayed().getName())
+                            || arrayHasCard(TopLeftRight, move.getCardPlayed().getName()))
+                            && move.getPosPlayed()[1] == 11)
+                        return move;
+                }
+            }
+        }
+        return null;
+    }
+
+    public static SaboteurMove checkMalus(ArrayList<SaboteurMove> legalMove, ArrayList<SaboteurCard> hand)
     {
 
-    	if(bs.getNbMalus(Math.abs(bs.getTurnPlayer() - 1)) > 0) {
-    		return null;
-    	}
-    	
         for(SaboteurMove move : legalMove) {
             if(move.getCardPlayed().getName().equals("Malus")) {
                 return move;
@@ -539,7 +630,8 @@ public class MyTools {
         return null;
     }
 
-    public static SaboteurMove checkDestroy(ArrayList<SaboteurMove> legalMove, SaboteurBoardState bs) {
+    public static SaboteurMove checkDestroy(ArrayList<SaboteurMove> legalMove, SaboteurBoardState bs)
+    {
 
         for(SaboteurMove move : legalMove) {
             if(move.getCardPlayed().getName().equals("Destroy")) {
@@ -551,8 +643,6 @@ public class MyTools {
             }
 
         }
-
-
         return null;
     }
 }
